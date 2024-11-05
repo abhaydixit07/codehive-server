@@ -37,8 +37,8 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // Add the new user to the room's users list
     socket.join(roomId);
-
     rooms[roomId].users[socket.id] = {
       userName,
       videoEnabled: true,
@@ -46,10 +46,25 @@ io.on("connection", (socket) => {
       code: rooms[roomId].code || "",
       cursorPosition: null,
     };
+
+    // Send the initial room data to the newly joined user
     socket.emit("initial_room_data", {
       code: rooms[roomId].code,
       users: rooms[roomId].users,
     });
+
+    // Notify all existing users in the room about the new user's arrival
+    Object.keys(rooms[roomId].users).forEach((existingUserId) => {
+      if (existingUserId !== socket.id) {
+        io.to(existingUserId).emit("user_joined_with_signal", {
+          signal: null, // Signal data will come from the frontend
+          callerID: socket.id,
+          userName,
+        });
+      }
+    });
+
+    // Notify other users in the room about the new user joining
     socket.to(roomId).emit("user_joined", {
       userId: socket.id,
       userName,
