@@ -20,6 +20,10 @@ const rooms = {};
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
+  socket.on('chat_message', (data) => {
+    
+    io.emit('receive_message', data);
+  });
 
   socket.on("create_room", (callback) => {
     const roomId = uuidv4();
@@ -91,6 +95,13 @@ io.on("connection", (socket) => {
       });
     }
   });
+  // socket.on("chat_message", (data) => {
+  //   // Broadcast received message to other users in the same room
+  //   const userRoom = Object.keys(socket.rooms).find((room) => room !== socket.id);
+  //   if (userRoom) {
+  //     socket.to(userRoom).emit("receive_message", data);
+  //   }
+  // });
 
   socket.on("cursor_position_change", ({ roomId, cursorPosition }) => {
     if (rooms[roomId]?.users[socket.id]) {
