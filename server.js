@@ -5,6 +5,7 @@ const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
 const app = express();
 const server = http.createServer(app);
+const cron = require("node-cron");
 
 const io = new Server(server, {
   cors: {
@@ -20,9 +21,8 @@ const rooms = {};
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
-  socket.on('chat_message', (data) => {
-    
-    io.emit('receive_message', data);
+  socket.on("chat_message", (data) => {
+    io.emit("receive_message", data);
   });
 
   socket.on("create_room", (callback) => {
@@ -42,38 +42,38 @@ io.on("connection", (socket) => {
     }
 
     // Add the new user to the room's users list
-  socket.join(roomId);
-  rooms[roomId].users[socket.id] = {
-    userName,
-    videoEnabled: true,
-    audioEnabled: true,
-    code: rooms[roomId].code || "",
-    cursorPosition: null,
-  };
+    socket.join(roomId);
+    rooms[roomId].users[socket.id] = {
+      userName,
+      videoEnabled: true,
+      audioEnabled: true,
+      code: rooms[roomId].code || "",
+      cursorPosition: null,
+    };
 
     // Send initial room data to the newly joined user
-  socket.emit("initial_room_data", {
-    code: rooms[roomId].code,
-    users: rooms[roomId].users,
-  });
+    socket.emit("initial_room_data", {
+      code: rooms[roomId].code,
+      users: rooms[roomId].users,
+    });
 
     // Notify existing users about the new user's arrival and trigger signaling
-  Object.keys(rooms[roomId].users).forEach((existingUserId) => {
-    if (existingUserId !== socket.id) {
-      // New user sends signal to existing user
-      io.to(existingUserId).emit("user_joined_with_signal", {
-        signal: null, // signal will be sent from the frontend
-        callerID: socket.id,
-        userName,
-      });
-      // Existing user responds with their signal to the new user
-      socket.emit("user_joined_with_signal", {
-        signal: null, // signal will be sent from the frontend
-        callerID: existingUserId,
-        userName: rooms[roomId].users[existingUserId].userName,
-      });
-    }
-  });
+    Object.keys(rooms[roomId].users).forEach((existingUserId) => {
+      if (existingUserId !== socket.id) {
+        // New user sends signal to existing user
+        io.to(existingUserId).emit("user_joined_with_signal", {
+          signal: null, // signal will be sent from the frontend
+          callerID: socket.id,
+          userName,
+        });
+        // Existing user responds with their signal to the new user
+        socket.emit("user_joined_with_signal", {
+          signal: null, // signal will be sent from the frontend
+          callerID: existingUserId,
+          userName: rooms[roomId].users[existingUserId].userName,
+        });
+      }
+    });
 
     // Notify other users in the room about the new user joining
     socket.to(roomId).emit("user_joined", {
@@ -170,6 +170,20 @@ io.on("connection", (socket) => {
 // Basic health check endpoint
 app.get("/", (req, res) => {
   res.send("Server is running!");
+});
+
+app.get("/keep-alive", (req, res) => {
+  console.log("Dummy route accessed at", new Date().toLocaleString());
+  res.send("Server is alive");
+});
+
+cron.schedule("*/8 * * * *", async () => {
+  try {
+    const response = await axios.get(`http://localhost:5000/keep-alive`);
+    console.log("Response from dummy route:", response.data);
+  } catch (error) {
+    console.error("Error accessing the dummy route:", error.message);
+  }
 });
 
 const PORT = process.env.PORT || 5000;
