@@ -41,7 +41,6 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Add the new user to the room's users list
     socket.join(roomId);
     rooms[roomId].users[socket.id] = {
       userName,
@@ -60,15 +59,14 @@ io.on("connection", (socket) => {
     // Notify existing users about the new user's arrival and trigger signaling
     Object.keys(rooms[roomId].users).forEach((existingUserId) => {
       if (existingUserId !== socket.id) {
-        // New user sends signal to existing user
         io.to(existingUserId).emit("user_joined_with_signal", {
-          signal: null, // signal will be sent from the frontend
+          signal: null,
           callerID: socket.id,
           userName,
         });
-        // Existing user responds with their signal to the new user
+
         socket.emit("user_joined_with_signal", {
-          signal: null, // signal will be sent from the frontend
+          signal: null,
           callerID: existingUserId,
           userName: rooms[roomId].users[existingUserId].userName,
         });
@@ -95,13 +93,6 @@ io.on("connection", (socket) => {
       });
     }
   });
-  // socket.on("chat_message", (data) => {
-  //   // Broadcast received message to other users in the same room
-  //   const userRoom = Object.keys(socket.rooms).find((room) => room !== socket.id);
-  //   if (userRoom) {
-  //     socket.to(userRoom).emit("receive_message", data);
-  //   }
-  // });
 
   socket.on("cursor_position_change", ({ roomId, cursorPosition }) => {
     if (rooms[roomId]?.users[socket.id]) {
@@ -167,7 +158,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// Basic health check endpoint
 app.get("/", (req, res) => {
   res.send("Server is running!");
 });
