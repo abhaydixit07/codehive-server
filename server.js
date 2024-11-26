@@ -9,7 +9,7 @@ const cron = require("node-cron");
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: process.env.FRONTEND_URL,
     methods: ["GET", "POST"],
   },
 });
@@ -179,7 +179,7 @@ app.get("/keep-alive", (req, res) => {
 
 cron.schedule("*/8 * * * *", async () => {
   try {
-    const response = await axios.get(`http://localhost:5000/keep-alive`);
+    const response = await axios.get(process.env.BACKEND_URL + "/keep-alive");
     console.log("Response from dummy route:", response.data);
   } catch (error) {
     console.error("Error accessing the dummy route:", error.message);
